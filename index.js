@@ -23,6 +23,12 @@ io.on('connection', (socket) => {
 
     console.log('A new user join the conversation');
 
+    socket.on('join', ({name, room}, callback) =>{
+
+        console.log(name, room);
+    });
+
+
     socket.on('disconnect', () => {
         console.log('An user left the conversation');
     });
