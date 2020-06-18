@@ -2,6 +2,7 @@ const http = require('http');
 const express = require('express');
 const socketio = require('socket.io');
 const dotenv = require('dotenv');
+const {addUser, removeUser, getUser, getUsersInRoom} = require('./users');
 
 dotenv.config({path:'.env'});
 
@@ -21,13 +22,36 @@ const io = socketio(server);
 
 io.on('connection', (socket) => {
 
-    console.log('A new user join the conversation');
-
     socket.on('join', ({name, room}, callback) =>{
 
-        console.log(name, room);
+        const {error, user} = addUser({id:socket.id, name, room });
+
+        if(error){
+            callback(error);
+            return;
+        }
+
+        socket.emit('message', {user: 'admin', text: `Welcome ${user.name}`});
+        socket.broadcast.to(user.room).emit('message', {user:'admin', text:`${user.name} join the room`});
+
+        callback();
     });
 
+    //receive the message from the client and emit to others clients through the room
+    socket.on('sendMessage', (message, callback) => {
+
+        const user = getUser(socket.id);
+        
+        if(!user) {
+            callback({error:'user not connected'})
+            return;
+        }
+        io.to(user).emit('message', {user:user.name, text:message});
+
+-       console.log(message);
+        callback();
+
+    });
 
     socket.on('disconnect', () => {
         console.log('An user left the conversation');
